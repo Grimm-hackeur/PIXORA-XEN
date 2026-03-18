@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Route } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
-import io from 'socket.io-client'
+import io from "socket.io-client";
 
 import PageRender from "./customRouter/PageRender";
 import PrivateRouter from "./customRouter/PrivateRouter";
@@ -15,10 +15,11 @@ import { refreshToken } from "./redux/actions/authAction";
 import { getPosts } from "./redux/actions/postAction";
 import { getSuggestions } from "./redux/actions/suggestionsAction";
 import { getNotifies } from "./redux/actions/notifyAction";
-
 import AdminDashboard from "./pages/adminDashboard";
 import { GLOBALTYPES } from "./redux/actions/globalTypes";
 import SocketClient from "./SocketClient";
+
+const API_URL = process.env.REACT_APP_API_URL || "";
 
 function App() {
   const { auth, status, modal, userType } = useSelector((state) => state);
@@ -27,11 +28,10 @@ function App() {
   useEffect(() => {
     dispatch(refreshToken());
 
-    const socket = io();
-    dispatch({type: GLOBALTYPES.SOCKET, payload: socket })
-    return () => socket.close()
+    const socket = io(API_URL, { withCredentials: true });
+    dispatch({ type: GLOBALTYPES.SOCKET, payload: socket });
+    return () => socket.close();
   }, [dispatch]);
-
 
   useEffect(() => {
     if (auth.token) {
@@ -42,19 +42,11 @@ function App() {
   }, [dispatch, auth.token]);
 
   useEffect(() => {
-    if (!("Notification" in window)) {
-      alert("This browser does not support desktop notification");
-    } else if (Notification.permission === "granted") {
-
-    } else if (Notification.permission !== "denied") {
-      Notification.requestPermission().then(function (permission) {
-        if (permission === "granted") {
-        }
-      });
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission();
     }
-  }, [])
-
-   
+  }, []);
 
   return (
     <Router>
@@ -64,7 +56,7 @@ function App() {
         <div className="main">
           {userType === "user" && auth.token && <Header />}
           {status && <StatusModal />}
-          {auth.token && <SocketClient /> }
+          {auth.token && <SocketClient />}
           <Route
             exact
             path="/"
